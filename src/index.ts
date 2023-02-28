@@ -11,7 +11,7 @@ function initializeSignerKeypair(): web3.Keypair {
         fs.writeFileSync('.env',`PRIVATE_KEY=[${signer.secretKey.toString()}]`)
         return signer
     }
-    
+
     const secret = JSON.parse(process.env.PRIVATE_KEY ?? "") as number[]
     const secretKey = Uint8Array.from(secret)
     const keypairFromSecretKey = web3.Keypair.fromSecretKey(secretKey)
@@ -27,37 +27,37 @@ async function airdropSolIfNeeded(signer: web3.Keypair, connection: web3.Connect
     }
 }
 
-const movieInstructionLayout = borsh.struct([
+const zilchInstructionLayout = borsh.struct([
     borsh.u8('variant'),
-    borsh.str('title'),
-    borsh.u8('rating'),
-    borsh.str('description')
+    borsh.str('program_hash'),
+    borsh.u8('outputs'),
+    borsh.str('proof_account')
 ])
 
-async function sendTestMovieReview(signer: web3.Keypair, programId: web3.PublicKey, connection: web3.Connection) {
+async function sendTestzilchReview(signer: web3.Keypair, programId: web3.PublicKey, connection: web3.Connection) {
     let buffer = Buffer.alloc(1000)
-    const movieTitle = `Braveheart${Math.random()*1000000}`
-    movieInstructionLayout.encode(
+    const zilchprogram_hash = `Braveheart${Math.random()*1000000}`
+    zilchInstructionLayout.encode(
         {
             variant: 0,
-            title: movieTitle,
-            rating: 5,
-            description: 'A great movie'
+            program_hash: zilchprogram_hash,
+            outputs: 5,
+            proof_account: 'A great zilch'
         },
         buffer
     )
 
-    buffer = buffer.slice(0, movieInstructionLayout.getSpan(buffer))
+    buffer = buffer.slice(0, zilchInstructionLayout.getSpan(buffer))
 
     const [pda] = await web3.PublicKey.findProgramAddress(
-        [signer.publicKey.toBuffer(), Buffer.from(movieTitle)],
+        [signer.publicKey.toBuffer(), Buffer.from(zilchprogram_hash)],
         programId
     )
 
     console.log("PDA is:", pda.toBase58())
 
     const transaction = new web3.Transaction()
-    
+
     const instruction = new web3.TransactionInstruction({
         programId: programId,
         data: buffer,
@@ -87,12 +87,13 @@ async function sendTestMovieReview(signer: web3.Keypair, programId: web3.PublicK
 
 async function main() {
     const signer = initializeSignerKeypair()
-    
-    const connection = new web3.Connection(web3.clusterApiUrl('devnet'))
+
+    // const connection = new web3.Connection(web3.clusterApiUrl("devnet")) //changed to localnet
+    const connection = new web3.Connection('http://127.0.0.1:8899')
     await airdropSolIfNeeded(signer, connection)
-    
-    const movieProgramId = new web3.PublicKey('FnHUUiX2jLSaGdt6GpgoJYKnUxzbPG5VmRPEDr1NEekm')
-    await sendTestMovieReview(signer, movieProgramId, connection)
+
+    const zilchProgramId = new web3.PublicKey('5m7eR6ZUsZkMfMp1KmiT3RXd6USQwPEDfeGnMgvRK5Yd') //custom.
+    await sendTestzilchReview(signer, zilchProgramId, connection)
 }
 
 main().then(() => {
